@@ -3,10 +3,12 @@ import express from "express";
 const app = express();
 const port = 3333;
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost/${port}`);
+app.use(express.json());
+
+app.get("/", (request, response) => {
+  return response.json({ message: "Hello World" });
 });
 
-app.get("/users", () => {
-  console.log("hey");
+app.listen(port, () => {
+  console.log(`Server running on http://localhost/${port}`);
 });
