@@ -14,35 +14,57 @@ interface ScheduleItem {
 routes.post("/classes", async (request, response) => {
   const { name, avatar, whatsapp, bio, subject, cost, schedule } = request.body;
 
-  const insertedUsersIds = await db("users").insert({
-    name,
-    avatar,
-    whatsapp,
-    bio,
-  });
+  const trx = await db.transaction();
 
-  const user_id = insertedUsersIds[0];
+  try {
+    const insertedUsersIds = await trx("users").insert({
+      name,
+      avatar,
+      whatsapp,
+      bio,
+    });
 
-  const insertedClassesId = await db("classes").insert({
-    subject,
-    cost,
-    user_id,
-  });
+    const user_id = insertedUsersIds[0];
 
-  const class_id = insertedClassesId[0];
+    const insertedClassesId = await trx("classes").insert({
+      subject,
+      cost,
+      user_id,
+    });
 
-  const classSchedule = schedule.map((scheduleItem: ScheduleItem) => {
-    return {
+    const class_id = insertedClassesId[0];
+
+    const classSchedule = schedule.map((scheduleItem: ScheduleItem) => {
+      return {
+        class_id,
+        week_day: scheduleItem.week_day,
+        from: convertHourToMinutes(scheduleItem.from),
+        to: convertHourToMinutes(scheduleItem.to),
+      };
+    });
+
+    await trx("class_schedule").insert(classSchedule);
+
+    await trx.commit();
+
+    return response.status(201).send({
+      name,
+      avatar,
+      whatsapp,
+      bio,
+      subject,
+      cost,
+      user_id,
       class_id,
-      week_day: scheduleItem.week_day,
-      from: convertHourToMinutes(scheduleItem.from),
-      to: convertHourToMinutes(scheduleItem.to),
-    };
-  });
+      classSchedule,
+    });
+  } catch (err) {
+    await trx.rollback();
 
-  await db("class_schedule").insert(classSchedule);
-
-  return response.send();
+    return response.status(400).json({
+      error: "Unexpected error while create new classes",
+    });
+  }
 });
 
 export default routes;
