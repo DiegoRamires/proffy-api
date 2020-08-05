@@ -98,6 +98,8 @@ export default class ClassesController {
         classSchedule,
       });
     } catch (err) {
+      console.log(err);
+
       await trx.rollback();
 
       return response.status(400).json({
